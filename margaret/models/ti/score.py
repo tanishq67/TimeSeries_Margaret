@@ -26,7 +26,7 @@ def get_temporal_score(
         sz[communities[i]] += 1
 
     for idx in cluster_ids:
-        score[idx] = score[idx]/communities
+        score[idx] = score[idx]/sz[communities[idx]]
 
     ad.obs["temporal_score"] = score
     return score
