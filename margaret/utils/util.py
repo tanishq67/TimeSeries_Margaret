@@ -4,6 +4,7 @@ import phenograph
 import scanpy as sc
 import time
 
+from tslearn.clustering import TimeSeriesKMeans
 from functools import wraps
 from scipy.sparse.csgraph import dijkstra
 from scipy.sparse import csr_matrix, csc_matrix
@@ -159,6 +160,7 @@ def determine_cell_clusters(
     obsm_key="X_pca",
     backend="phenograph",
     cluster_key="clusters",
+    cluster_size=5,
     nn_kwargs={},
     **kwargs,
 ):
@@ -189,6 +191,18 @@ def determine_cell_clusters(
         sc.pp.neighbors(data, use_rep=obsm_key, **nn_kwargs)
         sc.tl.leiden(data, key_added=cluster_key, **kwargs)
         data.obs[cluster_key] = data.obs[cluster_key].to_numpy().astype(np.int)
+        clusters = data.obs[cluster_key]
+        score = None
+    elif backend == "time_cluster":
+        dtw_Ymtr = TimeSeriesKMeans(n_clusters=cluster_size, metric="softdtw", metric_params={"gamma": .01}, verbose=True,random_state=10,n_jobs=-1)
+        GEMinput_df =  pd.DataFrame(X)
+        GEMinput_df['time_t'] = data.obs['Time_points'].tolist()
+        GEM_arr = GEMinput_df.values
+        gene_expression_matrix = GEM_arr
+        gene_expression_matrix -= np.vstack(np.nanmean(gene_expression_matrix, axis=1))
+        gene_expression_matrix /= np.vstack(np.nanstd(gene_expression_matrix, axis=1))
+        Ymtr_predict = dtw_Ymtr.fit_predict(gene_expression_matrix)
+        data.obs[cluster_key] = Ymtr_predict + 1
         clusters = data.obs[cluster_key]
         score = None
     else:

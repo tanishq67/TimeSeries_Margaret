@@ -4,6 +4,7 @@ import time
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+from tslearn.clustering import TimeSeriesKMeans
 
 from datasets.metric import MetricDataset
 from datasets.np import NpDataset
@@ -22,7 +23,9 @@ def train_metric_learner(
     device="cuda",
     random_state=0,
     save_path=os.getcwd(),
-    backend="kmeans",
+    backend="time_cluster",
+    loss_function = "TripletMarginLoss",
+    cluster_size = 5,
     nn_kwargs={},
     trainer_kwargs={},
     cluster_kwargs={},
@@ -39,6 +42,7 @@ def train_metric_learner(
         obsm_key=obsm_data_key,
         backend=backend,
         cluster_key="metric_clusters",
+        cluster_size = cluster_size,
         nn_kwargs=nn_kwargs,
         **cluster_kwargs,
     )
@@ -51,8 +55,14 @@ def train_metric_learner(
     cluster_record.append(dataset.num_clusters)
 
     # Train Loss
-    train_loss = nn.TripletMarginLoss(**loss_kwargs)
-
+    if loss_function == "TripletMarginLoss":
+        train_loss = nn.TripletMarginLoss(**loss_kwargs)
+    elif loss_function == "TripletMarginWithDistanceLoss":
+        train_loss = nn.TripletMarginWithDistanceLoss(**loss_kwargs)
+    elif loss_function == "MultiMarginLoss":
+        train_loss = nn.MultiMarginLoss(**loss_kwargs)
+    elif loss_function == "MultiLabelMarginLoss":
+        train_loss = nn.MultiLabelMarginLoss(**loss_kwargs)
     # Model
     infeatures = X.shape[-1]
     model = MetricEncoder(infeatures, code_size=code_size).to(device)
@@ -92,6 +102,7 @@ def train_metric_learner(
             obsm_key="metric_embedding",
             backend=backend,
             cluster_key="metric_clusters",
+            cluster_size = cluster_size,
             nn_kwargs=nn_kwargs,
             **cluster_kwargs,
         )
