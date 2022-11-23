@@ -195,7 +195,8 @@ def determine_cell_clusters(
         score = None
     elif backend == "time_cluster":
         dtw_Ymtr = TimeSeriesKMeans(n_clusters=cluster_size, metric="softdtw", metric_params={"gamma": .01}, verbose=True,random_state=10,n_jobs=-1)
-        GEMinput_df =  pd.DataFrame(X)
+        Y = data.obsm[obsm_key].X
+        GEMinput_df = pd.DataFrame(Y)
         GEMinput_df['time_t'] = data.obs['Time_points'].tolist()
         GEM_arr = GEMinput_df.values
         gene_expression_matrix = GEM_arr
